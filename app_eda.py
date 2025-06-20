@@ -291,7 +291,6 @@ class EDA:
             # Display plot in Streamlit
             st.pyplot(fig)
 
-
         # 4. 지역별 인구 변화량 순위
         with tabs[3]:
             st.header("🕒 지역별 인구 변화량 순위")
@@ -362,21 +361,39 @@ class EDA:
         - 예를 들어, Gyeonggi는 절대 증가량이 가장 크며, Sejong은 변화율 측면에서 가장 높은 성장률을 보였습니다.
         """)
 
-
-        # 5. 시각화
+        # 5. 증감률 상위 지역 및 연도 도출
         with tabs[4]:
-            st.header("📈 시각화")
+            st.header("📈 증감률 상위 지역 및 연도 도출")
             # by 근무일 여부
             st.subheader("근무일 여부별 시간대별 평균 대여량")
+            
+            # Compute yearly diff for each region, excluding '전국'
+            df_region = df[df['지역'] != '전국'].sort_values(['지역', '연도']).copy()
+            df_region['diff'] = df_region.groupby('지역')['인구'].diff()
+            df_region = df_region.dropna(subset=['diff'])
+
+            # Select top 100 increases by diff
+            top100 = df_region.sort_values('diff', ascending=False).head(100)
+
+            # Determine symmetric color scale
+            max_abs = top100['diff'].abs().max()
+
+            # Style table: format numbers with commas and apply diverging colorbar
+            styled = top100[['연도', '지역', '인구', 'diff']].style.format({
+                '인구': '{:,.0f}',
+                'diff': '{:,.0f}'
+            }).background_gradient(
+                cmap='bwr', subset=['diff'],
+                vmin=-max_abs, vmax=max_abs
+            )
+
+            st.subheader("Top 100 Yearly Changes")
+            st.dataframe(styled)
 
         # 6. 상관관계 분석
         with tabs[5]:
             st.header("🔗 상관관계 분석")
             
-
-        # 7. 이상치 제거
-        with tabs[6]:
-            st.header("🚫 이상치 제거")
             
 
 # ---------------------
