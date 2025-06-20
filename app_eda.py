@@ -210,12 +210,9 @@ class EDA:
         
         df = pd.read_csv(uploaded_file)
 
-        # '세종' 지역의 결측치 '-'를 0으로 치환
-        mask = df['지역'] == '세종'
-        df.loc[mask] = df.loc[mask].replace('-', 0)
-
         # '인구', '출생아수(명)', '사망자수(명)' 열을 숫자 타입으로 변환
         for col in ['인구', '출생아수(명)', '사망자수(명)']:
+            df[col] = df[col].replace('-', 0)
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
 
 
@@ -262,13 +259,34 @@ class EDA:
 
         # 3. 데이터 로드 & 품질 체크
         with tabs[2]:
-            st.header("📥 데이터 로드 & 품질 체크")
-            st.subheader("결측값 개수")
-            missing = df.isnull().sum()
-            st.bar_chart(missing)
+            st.header("📥 연도별 전체 인구 추이 그래프")
+            nation_df = df[df['지역'] == '전국'].sort_values('연도')
 
-            duplicates = df.duplicated().sum()
-            st.write(f"- 중복 행 개수: {duplicates}개")
+            # Plot historical population trend
+            fig, ax = plt.subplots()
+            sns.lineplot(data=nation_df, x='연도', y='인구', marker='o', ax=ax)
+
+            # Compute average annual net change from last 3 years
+            recent = nation_df.tail(3).copy()
+            recent['net_change'] = recent['출생아수(명)'] - recent['사망자수(명)']
+            avg_net = recent['net_change'].mean()
+
+            # Project population to 2035
+            last_year = nation_df['연도'].iloc[-1]
+            last_pop = nation_df['인구'].iloc[-1]
+            years = list(nation_df['연도']) + [2035]
+            pops = list(nation_df['인구']) + [int(last_pop + avg_net * (2035 - last_year))]
+            sns.lineplot(x=years, y=pops, marker='o', linestyle='--', ax=ax)
+
+            # Labels and title in English
+            ax.set_title('Population Trend and Projection')
+            ax.set_xlabel('Year')
+            ax.set_ylabel('Population')
+            ax.legend(['Historical', 'Projected'], loc='upper left')
+
+            # Display plot in Streamlit
+            st.pyplot(fig)
+
 
         # 4. Datetime 특성 추출
         with tabs[3]:
