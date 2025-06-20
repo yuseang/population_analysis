@@ -253,9 +253,6 @@ class EDA:
             st.subheader("Descriptive Statistics")
             st.write(df.describe())
 
-                # 데이터 미리보기
-            st.subheader("Data Preview")
-            st.dataframe(df.head())
 
         # 3. 연도별 전체 인구 추이 그래프
         with tabs[2]:
