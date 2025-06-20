@@ -365,7 +365,7 @@ class EDA:
         with tabs[4]:
             st.header("📈 증감률 상위 지역 및 연도 도출")
             # by 근무일 여부
-            st.subheader("근무일 여부별 시간대별 평균 대여량")
+            st.subheader("증가: 파랑 계열, 감소: 빨강 계열")
             
             # Compute yearly diff for each region, excluding '전국'
             df_region = df[df['지역'] != '전국'].sort_values(['지역', '연도']).copy()
@@ -393,6 +393,49 @@ class EDA:
         # 6. 상관관계 분석
         with tabs[5]:
             st.header("🔗 상관관계 분석")
+
+            # --- Top 100 Yearly Changes Table ---
+            df_region = df[df['지역'] != '전국'].sort_values(['지역', '연도']).copy()
+            df_region['diff'] = df_region.groupby('지역')['인구'].diff()
+            df_region = df_region.dropna(subset=['diff'])
+            top100 = df_region.sort_values('diff', ascending=False).head(100)
+            max_abs = top100['diff'].abs().max()
+            styled = top100[['연도', '지역', '인구', 'diff']].style.format({
+                '인구': '{:,.0f}',
+                'diff': '{:,.0f}'
+            }).background_gradient(
+                cmap='bwr', subset=['diff'],
+                vmin=-max_abs, vmax=max_abs
+            )
+            st.subheader("Top 100 Yearly Population Changes")
+            st.dataframe(styled)
+
+            # --- Stacked Area Chart by Region Over Time ---
+            # Map Korean region names to English
+            mapping = {
+                '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
+                '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
+                '경기': 'Gyeonggi', '강원': 'Gangwon', '충북': 'Chungbuk', '충남': 'Chungnam',
+                '전북': 'Jeonbuk', '전남': 'Jeonnam', '경북': 'Gyeongbuk', '경남': 'Gyeongnam',
+                '제주': 'Jeju', '전국': 'Nationwide'
+            }
+            df['Region'] = df['지역'].map(mapping)
+            # Create pivot table
+            pivot = df.pivot(index='Region', columns='연도', values='인구').fillna(0)
+            years = pivot.columns.tolist()
+            data = pivot.values
+
+            # Plot stacked area
+            fig, ax = plt.subplots(figsize=(10, 6))
+            colors = sns.color_palette('tab20', n_colors=len(pivot))
+            ax.stackplot(years, data, labels=pivot.index, colors=colors)
+            ax.set_title('Population by Region Over Time')
+            ax.set_xlabel('Year')
+            ax.set_ylabel('Population')
+            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
+            plt.tight_layout()
+            st.pyplot(fig)
+
             
             
 
