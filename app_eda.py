@@ -390,25 +390,9 @@ class EDA:
             st.subheader("Top 100 Yearly Changes")
             st.dataframe(styled)
 
-        # 6. 상관관계 분석
+        # 6. 누적영역그래프 등 적절한 시각화
         with tabs[5]:
-            st.header("🔗 상관관계 분석")
-
-            # --- Top 100 Yearly Changes Table ---
-            df_region = df[df['지역'] != '전국'].sort_values(['지역', '연도']).copy()
-            df_region['diff'] = df_region.groupby('지역')['인구'].diff()
-            df_region = df_region.dropna(subset=['diff'])
-            top100 = df_region.sort_values('diff', ascending=False).head(100)
-            max_abs = top100['diff'].abs().max()
-            styled = top100[['연도', '지역', '인구', 'diff']].style.format({
-                '인구': '{:,.0f}',
-                'diff': '{:,.0f}'
-            }).background_gradient(
-                cmap='bwr', subset=['diff'],
-                vmin=-max_abs, vmax=max_abs
-            )
-            st.subheader("Top 100 Yearly Population Changes")
-            st.dataframe(styled)
+            st.header("🔗 누적영역그래프 등 적절한 시각화")
 
             # --- Stacked Area Chart by Region Over Time ---
             # Map Korean region names to English
