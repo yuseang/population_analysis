@@ -292,10 +292,75 @@ class EDA:
             st.pyplot(fig)
 
 
-        # 4. Datetime 특성 추출
+        # 4. 지역별 인구 변화량 순위
         with tabs[3]:
-            st.header("🕒 Datetime 특성 추출")
-            st.markdown("`datetime` 컬럼에서 연, 월, 일, 시, 요일 등을 추출합니다.")
+            st.header("🕒 지역별 인구 변화량 순위")
+            st.markdown("`인구` 컬럼에서 각 지역의 값을 비교합니다.")
+
+            years = sorted(df['연도'].unique())
+            latest_year = years[-1]
+            prev_year = latest_year - 5
+
+            # Filter out nationwide and select by year
+            df_latest = df[(df['지역'] != '전국') & (df['연도'] == latest_year)]
+            df_prev = df[(df['지역'] != '전국') & (df['연도'] == prev_year)]
+
+            # Merge and compute change and rate
+            merged = pd.merge(
+                df_latest[['지역', '인구']],
+                df_prev[['지역', '인구']],
+                on='지역', suffixes=('_latest', '_prev')
+            )
+            merged['change'] = merged['인구_latest'] - merged['인구_prev']
+            merged['change_k'] = merged['change'] / 1000.0
+            merged['change_rate'] = merged['change'] / merged['인구_prev'] * 100
+
+            # Translate region names to English
+            mapping = {
+                '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
+                '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
+                '경기': 'Gyeonggi', '강원': 'Gangwon', '충북': 'Chungbuk', '충남': 'Chungnam',
+                '전북': 'Jeonbuk', '전남': 'Jeonnam', '경북': 'Gyeongbuk', '경남': 'Gyeongnam',
+                '제주': 'Jeju'
+            }
+            merged['Region'] = merged['지역'].map(mapping)
+
+            # Sort by absolute change descending
+            merged = merged.sort_values('change', ascending=False)
+
+            # Plot absolute change (in thousands)
+            fig1, ax1 = plt.subplots()
+            sns.barplot(
+                x='change_k', y='Region', data=merged,
+                ax=ax1, orient='h'
+            )
+            for i, v in enumerate(merged['change_k']):
+                ax1.text(v, i, f"{v:.1f}", va='center')
+            ax1.set_title('Population Change by Region (Last 5 Years)')
+            ax1.set_xlabel('Population Change (thousands)')
+            ax1.set_ylabel('Region')
+            st.pyplot(fig1)
+
+            # Plot change rate (% )
+            fig2, ax2 = plt.subplots()
+            sns.barplot(
+                x='change_rate', y='Region', data=merged,
+                ax=ax2, orient='h'
+            )
+            for i, v in enumerate(merged['change_rate']):
+                ax2.text(v, i, f"{v:.1f}%", va='center')
+            ax2.set_title('Population Change Rate by Region (Last 5 Years)')
+            ax2.set_xlabel('Population Change Rate (%)')
+            ax2.set_ylabel('Region')
+            st.pyplot(fig2)
+
+            # Explanation below the charts
+            st.markdown("""
+        **분석 결과**
+        - 상위 지역은 지난 5년간 절대 인구 증가량이 가장 큰 지역을 나타냅니다.
+        - 변화율이 높은 지역일수록 초기 인구 대비 성장 속도가 빠릅니다.
+        - 예를 들어, Gyeonggi는 절대 증가량이 가장 크며, Sejong은 변화율 측면에서 가장 높은 성장률을 보였습니다.
+        """)
 
 
         # 5. 시각화
